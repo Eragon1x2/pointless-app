@@ -1,73 +1,44 @@
-# React + TypeScript + Vite
+# 📍 Pointless App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Pointless App** is a gamified urban exploration tool built with React. It’s designed for those who want to break their daily routine and explore the city in a completely unpredictable way.
 
-Currently, two official plugins are available:
+The concept is simple: The app takes your current location, generates a random destination within your chosen radius (e.g., 500m, 5km, 10km), and challenges you to get there. No pre-planned routes, no specific cafes or shops — just a random dot on the map and your curiosity.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## 🚀 Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Dynamic Radius:** Choose how far you want to go (Short Walk, City Hike, or Marathon).
+- **True Randomness:** A custom mathematical algorithm ensures points are distributed evenly across the area, accounting for Earth's curvature.
+- **Real-time Tracking:** See your current position relative to the target point.
+- **Minimalist UI:** No distractions, just you and the destination.
+- **Mobile Ready:** Built with a "Mobile-First" mindset for easy transition to React Native.
 
-## Expanding the ESLint configuration
+## 🛠 Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Framework:** [React.js](https://reactjs.org/) (Vite)
+- **Maps:** [Leaflet](https://leafletjs.com/) / [React Leaflet](https://react-leaflet.js.org/)
+- **Geolocation:** Browser Geolocation API
+- **Styling:** CSS
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 🎲 The Algorithm
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+The app uses a custom displacement formula to generate coordinates. Unlike simple random offsets which tend to cluster points near the center, our implementation uses the square root of the random variable to ensure a **uniform distribution** across the circular area:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+$$w = R \cdot \sqrt{random()}$$
+$$t = 2 \cdot \pi \cdot random()$$
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+This ensures that every square meter within your chosen radius has an equal chance of being your next destination.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 🏃‍♂️ Getting Started
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### Prerequisites
+- Node.js (v18 or higher)
+- npm or yarn
+
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone [https://github.com/Eragon1x2/pointless-app.git](https://github.com/Eragon1x2/pointless-app.git)
+   cd pointless-app
