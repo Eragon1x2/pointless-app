@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import generateTargetPoint from './api/random-coordinates'
 import Map from './components/Map';
 import { Marker, Popup } from 'react-leaflet';
+import { getDistanceInMeters } from './utils.ts/geo-match';
 
 function App() {
   const { coordinates, error, loading } = useLocation();
@@ -11,11 +12,15 @@ function App() {
   const [target, setTarget] = useState<{ lat: number; lng: number; distanceSet: number } | null>(null);
 
   useEffect(() => {
-    if (coordinates) {
-      // Don't auto-set target distance 0 on load for gamification
-      // Only set initial map location
+    if (!target || !coordinates) return;
+
+    // Считаем метры по формуле гаверсинуса (расстояние на сфере)
+   const distance = getDistanceInMeters(coordinates.lat, coordinates.lng, target.lat, target.lng);
+    if (distance <= 10) {
+      console.log("you win! Points reached within 10 meters.");
+      // Тут можно вызывать состояние победы, модалку и т.д.
     }
-  }, [coordinates])
+  }, [coordinates, target])
 
   return (
     <div className="app-container">
@@ -47,21 +52,21 @@ function App() {
           <h1 className="title">Pointless</h1>
           <div className="input-group">
             <label className="input-label">Distance (meters)</label>
-            <input 
-              type="number" 
-              className="gamified-input" 
-              min="0" 
-              max="10000" 
-              value={distance} 
-              onChange={(e) => setDistance(Number(e.target.value))} 
+            <input
+              type="number"
+              className="gamified-input"
+              min="0"
+              max="10000"
+              value={distance}
+              onChange={(e) => setDistance(Number(e.target.value))}
             />
           </div>
-          <button 
-            className="gamified-btn" 
-            disabled={!coordinates || distance <= 0} 
-            onClick={() => { 
+          <button
+            className="gamified-btn"
+            disabled={!coordinates || distance <= 0}
+            onClick={() => {
               if (coordinates) {
-                setTarget(Object.assign(generateTargetPoint(coordinates.lat, coordinates.lng, 0, distance), {distanceSet: distance})); 
+                setTarget(Object.assign(generateTargetPoint(coordinates.lat, coordinates.lng, 0, distance), {distanceSet: distance}));
               }
             }}
           >

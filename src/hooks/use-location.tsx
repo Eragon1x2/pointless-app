@@ -19,10 +19,9 @@ export const useLocation = () => {
   });
 
   useEffect(() => {
-    if (!isSupported) {
-      return;
-    }
+    if (!isSupported) return;
 
+    // Функция обработки успеха
     const handleSuccess = (position: GeolocationPosition) => {
       setLocation({
         coordinates: {
@@ -34,35 +33,34 @@ export const useLocation = () => {
       });
     };
 
+    // Функция обработки ошибок
     const handleError = (error: GeolocationPositionError) => {
-      let errorMessage = error.message;
-
+      let errorMessage = "An unknown error occurred.";
       switch (error.code) {
         case error.PERMISSION_DENIED:
-          errorMessage = "You denied permission to access your location.";
+          errorMessage = "Please enable location access in your settings.";
           break;
         case error.POSITION_UNAVAILABLE:
-          errorMessage = "Location information is unavailable (your browser/OS might not have location services enabled).";
+          errorMessage = "Location signal is weak or unavailable.";
           break;
         case error.TIMEOUT:
-          errorMessage = "The request to get your location timed out.";
+          errorMessage = "GPS request timed out.";
           break;
-        default:
-          errorMessage = error.message || "An unknown error occurred while getting location.";
       }
-
-      setLocation({
-        coordinates: null,
-        error: errorMessage,
-        loading: false,
-      });
+      setLocation(prev => ({ ...prev, error: errorMessage, loading: false }));
     };
 
-    navigator.geolocation.getCurrentPosition(handleSuccess, handleError, {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0
+    // ГЛАВНОЕ ИЗМЕНЕНИЕ: watchPosition вместо getCurrentPosition
+    const watchId = navigator.geolocation.watchPosition(handleSuccess, handleError, {
+      enableHighAccuracy: true, // Максимальная точность для игры
+      timeout: 15000,           // Ждем ответ от GPS чуть дольше
+      maximumAge: 0             // Не берем координаты из кэша
     });
+
+    // Очистка при размонтировании компонента (важно для батареи!)
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
   }, []);
 
   return location;
