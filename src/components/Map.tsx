@@ -1,7 +1,7 @@
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 
-export default function  Map({coordinates}: {coordinates: {lat: number, lng: number}}) {
+export default function  Map({coordinates, children}: {coordinates: {lat: number, lng: number}, children: React.ReactNode}) {
      return (
      <MapContainer center={[coordinates.lat, coordinates.lng]} className='map' zoom={13} scrollWheelZoom={false}>
                <TileLayer
@@ -13,6 +13,7 @@ export default function  Map({coordinates}: {coordinates: {lat: number, lng: num
                    A pretty CSS3 popup. <br /> Easily customizable.
                  </Popup>
                </Marker>
+               {children}
              </MapContainer>
              )
 }
