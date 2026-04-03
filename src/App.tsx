@@ -7,37 +7,70 @@ import { Marker, Popup } from 'react-leaflet';
 
 function App() {
   const { coordinates, error, loading } = useLocation();
-  const [distance, setDistance] = useState(0);
+  const [distance, setDistance] = useState(1000);
   const [target, setTarget] = useState<{ lat: number; lng: number; distanceSet: number } | null>(null);
 
   useEffect(() => {
     if (coordinates) {
-      setTarget({ lat: coordinates.lat, lng: coordinates.lng, distanceSet: 0 });
+      // Don't auto-set target distance 0 on load for gamification
+      // Only set initial map location
     }
   }, [coordinates])
-  return (
-    <>
-      {loading && <p>Loading location...</p>}
-      {error && <p>Error: {error}</p>}
-      {coordinates && (
-        <p>
-          Latitude: {coordinates.lat}, Longitude: {coordinates.lng}
-        </p>
-      )}
-      <input type="number" min="0" max="10000" value={distance} onChange={(e) => setDistance(Number(e.target.value))} />
-      <button disabled={!coordinates} onClick={() => { if (coordinates) setTarget(generateTargetPoint(coordinates.lat, coordinates.lng, 0, distance)); }}>Generate</button>
-      {coordinates && (
-        <Map coordinates={{ lat: coordinates.lat, lng: coordinates.lng }} >
-          {target && (<Marker position={[target.lat, target.lng]}>
-            <Popup>
-              A pretty CSS3 popup. <br /> Easily customizable.
-            </Popup>
-          </Marker>)}
-        </Map>
-      )}
-  </>
-  )
 
+  return (
+    <div className="app-container">
+      <div className="map-layer">
+        {coordinates ? (
+          <Map coordinates={{ lat: coordinates.lat, lng: coordinates.lng }}>
+            {target && (
+              <Marker position={[target.lat, target.lng]}>
+                <Popup>
+                  <strong>Target Point</strong><br/>
+                  Distance: {target.distanceSet}m
+                </Popup>
+              </Marker>
+            )}
+          </Map>
+        ) : (
+          <div style={{ width: '100%', height: '100%', backgroundColor: '#e0e5db', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <p style={{ color: '#53594d', fontWeight: 'bold' }}>Loading GPS...</p>
+          </div>
+        )}
+      </div>
+
+      <div className="ui-layer">
+        {loading && <div className="status-badge loading">GPS: Locating...</div>}
+        {error && <div className="status-badge error">GPS Error: {error}</div>}
+        {coordinates && !loading && !error && <div className="status-badge success">GPS: Locked</div>}
+
+        <div className="ui-panel">
+          <h1 className="title">Pointless</h1>
+          <div className="input-group">
+            <label className="input-label">Distance (meters)</label>
+            <input 
+              type="number" 
+              className="gamified-input" 
+              min="0" 
+              max="10000" 
+              value={distance} 
+              onChange={(e) => setDistance(Number(e.target.value))} 
+            />
+          </div>
+          <button 
+            className="gamified-btn" 
+            disabled={!coordinates || distance <= 0} 
+            onClick={() => { 
+              if (coordinates) {
+                setTarget(Object.assign(generateTargetPoint(coordinates.lat, coordinates.lng, 0, distance), {distanceSet: distance})); 
+              }
+            }}
+          >
+            GENERATE
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default App
