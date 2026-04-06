@@ -6,13 +6,9 @@
  * @param {number} maxDistance - Максимальное расстояние (в метрах)
  */
 
-interface Target {
-     lat: number;
-     lng: number;
-     distanceSet: number;
-}
+import type { TargetPoint } from '../types';
 
-export default function generateTargetPoint (lat: number, lng: number, minDistance: number, maxDistance: number): Target {
+export default function generateTargetPoint (lat: number, lng: number, minDistance: number, maxDistance: number): TargetPoint {
   const EARTH_RADIUS = 6371000;
 
   // 1. Генерируем случайное расстояние в заданном промежутке [min, max]

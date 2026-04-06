@@ -14,18 +14,29 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 })
 
+const UserLocationIcon = L.divIcon({
+  className: 'user-location-marker',
+  html: '<div class="user-dot"></div><div class="user-pulse"></div>',
+  iconSize: [20, 20],
+  iconAnchor: [10, 10]
+})
+
 export default function Map({coordinates, children}: {coordinates: {lat: number, lng: number}, children: React.ReactNode}) {
   return (
-    <MapContainer center={[coordinates.lat, coordinates.lng]} zoom={13} scrollWheelZoom={true} zoomControl={false}>
+    <MapContainer center={[coordinates.lat, coordinates.lng]} zoom={15} scrollWheelZoom={true} zoomControl={false}>
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <Marker position={[coordinates.lat, coordinates.lng]}>
+
+      {/* Пользовательская точка как в Google Maps */}
+      <Marker position={[coordinates.lat, coordinates.lng]} icon={UserLocationIcon}>
         <Popup>
           <strong>You are here</strong>
         </Popup>
       </Marker>
+
+      {/* Остальные дочерние элементы карты (генерация точек) */}
       {children}
     </MapContainer>
   )

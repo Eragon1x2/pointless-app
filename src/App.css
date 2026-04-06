@@ -158,3 +158,115 @@
     padding: 0;
   }
 }
+
+/* User Location Marker (Google Maps Style) */
+.user-location-marker {
+  position: relative;
+}
+
+.user-dot {
+  width: 14px;
+  height: 14px;
+  background-color: #4285F4;
+  border: 2px solid white;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  box-shadow: 0 0 4px rgba(0,0,0,0.3);
+}
+
+.user-pulse {
+  width: 40px;
+  height: 40px;
+  background-color: rgba(66, 133, 244, 0.4);
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  animation: gps-pulse 2s infinite ease-out;
+}
+
+@keyframes gps-pulse {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: absolute;
+  top: 0; left: 0; width: 100vw; height: 100dvh;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: pop-in 0.2s ease-out forwards;
+}
+
+.modal-content {
+  background: var(--surface);
+  border-radius: 24px;
+  width: 100%;
+  max-width: 400px;
+  max-height: 80vh;
+  box-shadow: var(--shadow-lg);
+  border: 4px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 2px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-close {
+  background: var(--surface-alt);
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s;
+}
+.modal-close:active {
+  background: var(--error);
+  color: white;
+}
+
+.history-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 20;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 3px solid var(--border);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 24px;
+}
+.history-btn:active {
+  transform: scale(0.9);
+}

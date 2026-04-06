@@ -1,0 +1,17 @@
+{
+  "name": "Pointless",
+  "short_name": "Pointless",
+  "description": "Gamified location app guiding you to random meaningless points.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#e0e5db",
+  "theme_color": "#bdf731",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
