@@ -25,6 +25,7 @@ export default function Map({coordinates, children}: {coordinates: {lat: number,
   return (
     <MapContainer center={[coordinates.lat, coordinates.lng]} zoom={15} scrollWheelZoom={true} zoomControl={false}>
       <TileLayer
+        detectRetina={true}
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
