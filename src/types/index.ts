@@ -12,4 +12,5 @@ export interface HistoryRecord {
   status: 'Win' | 'Lost';
   address?: string;
   timeTakenMs?: number;
+  route?: [number, number][];
 }

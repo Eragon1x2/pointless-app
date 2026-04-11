@@ -3,7 +3,7 @@ import { useLocation } from './hooks/use-location'
 import { useEffect, useState } from 'react'
 import generateTargetPoint from './api/random-coordinates'
 import Map from './components/Map';
-import { Marker, Popup } from 'react-leaflet';
+import { Marker, Popup, Polyline } from 'react-leaflet';
 import { getDistanceInMeters } from './utils.ts/geo-match';
 import History from './components/History';
 import type { HistoryRecord, TargetPoint } from './types';
@@ -14,6 +14,7 @@ function App() {
   const [target, setTarget] = useState<TargetPoint | null>(null);
   const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [route, setRoute] = useState<[number, number][]>([]);
 
   useEffect(() => {
     const savedHistory = localStorage.getItem('history');
@@ -22,8 +23,8 @@ function App() {
     }
   }, []) // ПУСТОЙ массив зависимостей, чтобы сработало 1 раз при старте!
 
-  const appendHistory = (status: 'Win' | 'Lost', dist: number, address?: string, timeTakenMs?: number) => {
-    const newRecord: HistoryRecord = { distanceSet: dist, date: new Date().toISOString(), status, address, timeTakenMs };
+  const appendHistory = (status: 'Win' | 'Lost', dist: number, address?: string, timeTakenMs?: number, savedRoute?: [number, number][]) => {
+    const newRecord: HistoryRecord = { distanceSet: dist, date: new Date().toISOString(), status, address, timeTakenMs, route: savedRoute };
     setHistory(prevHistory => {
       const newHistory = [...prevHistory, newRecord];
       localStorage.setItem('history', JSON.stringify(newHistory));
@@ -38,12 +39,24 @@ function App() {
     // при моментальном совпадении координат!
     if (target.address === 'Loading address...') return;
 
+    // Route tracking optimization: only add point if moved > 3 meters
+    setRoute(prev => {
+        const lastPoint = prev[prev.length - 1];
+        if (!lastPoint) return [[coordinates.lat, coordinates.lng]];
+        const distCurrentToLast = getDistanceInMeters(coordinates.lat, coordinates.lng, lastPoint[0], lastPoint[1]);
+        if (distCurrentToLast > 3) {
+            return [...prev, [coordinates.lat, coordinates.lng]];
+        }
+        return prev;
+    });
+
     const dist = getDistanceInMeters(coordinates.lat, coordinates.lng, target.lat, target.lng);
     if (dist <= 10) {
        setTimeout(() => {
          const timeTakenMs = target.createdAt ? Date.now() - target.createdAt : undefined;
-         appendHistory('Win', target.distanceSet, target.address, timeTakenMs);
+         appendHistory('Win', target.distanceSet, target.address, timeTakenMs, route);
          setTarget(null);
+         setRoute([]);
        }, 0);
        console.log("you win! Points reached within 10 meters.");
     }
@@ -54,6 +67,7 @@ function App() {
     const generated = generateTargetPoint(coordinates.lat, coordinates.lng, 0, distance);
     const newTarget = { ...generated, distanceSet: distance, address: 'Loading address...', createdAt: Date.now() };
     setTarget(newTarget);
+    setRoute([[coordinates.lat, coordinates.lng]]); // start route tracking!
 
     try {
       const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${generated.lat}&lon=${generated.lng}&format=json`);
@@ -84,6 +98,9 @@ function App() {
       <div className="map-layer">
         {coordinates ? (
           <Map coordinates={{ lat: coordinates.lat, lng: coordinates.lng }}>
+            {route.length > 0 && (
+              <Polyline positions={route} pathOptions={{ color: '#4285F4', weight: 6, opacity: 0.8 }} />
+            )}
             {target && (
               <Marker position={[target.lat, target.lng]}>
                 <Popup>
@@ -130,8 +147,9 @@ function App() {
         ) : (
           <button className="gamified-btn" style={{ background: 'var(--error)', color: 'white', border: 'none', boxShadow: 'none' }} onClick={() => {
                const timeTakenMs = target.createdAt ? Date.now() - target.createdAt : undefined;
-               appendHistory('Lost', target.distanceSet, target.address, timeTakenMs);
+               appendHistory('Lost', target.distanceSet, target.address, timeTakenMs, route);
                setTarget(null);
+               setRoute([]);
           }}>
           Give Up
           </button>

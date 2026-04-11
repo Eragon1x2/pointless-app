@@ -25,7 +25,8 @@ export default function generateTargetPoint (lat: number, lng: number, minDistan
   return {
     lat: +(lat + deltaLat * (180 / Math.PI)).toFixed(6),
     lng: +(lng + deltaLng * (180 / Math.PI)).toFixed(6),
-    distanceSet: Math.round(randomDist) // вернем для инфы, на каком расстоянии реально создалась точка
+    distanceSet: Math.round(randomDist), // вернем для инфы, на каком расстоянии реально создалась точка
+    createdAt: Date.now()
   };
 };
 
