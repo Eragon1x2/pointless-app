@@ -3,6 +3,7 @@ export interface TargetPoint {
   lng: number;
   distanceSet: number;
   address?: string;
+  createdAt: number;
 }
 
 export interface HistoryRecord {
@@ -10,4 +11,5 @@ export interface HistoryRecord {
   date: string;
   status: 'Win' | 'Lost';
   address?: string;
+  timeTakenMs?: number;
 }

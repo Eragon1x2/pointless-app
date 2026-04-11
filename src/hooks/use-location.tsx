@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface LocationState {
   coordinates: {
@@ -17,6 +17,12 @@ export const useLocation = () => {
     error: isSupported ? null : "Geolocation is not supported by your browser",
     loading: isSupported,
   });
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const refresh = useCallback(() => {
+    setLocation(prev => ({ ...prev, loading: true }));
+    setRefreshKey(prev => prev + 1);
+  }, []);
 
   useEffect(() => {
     if (!isSupported) return;
@@ -61,7 +67,7 @@ export const useLocation = () => {
     return () => {
       navigator.geolocation.clearWatch(watchId);
     };
-  }, []);
+  }, [refreshKey]);
 
-  return location;
+  return { ...location, refresh };
 };

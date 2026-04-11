@@ -270,3 +270,25 @@
 .history-btn:active {
   transform: scale(0.9);
 }
+
+.location-btn {
+  position: absolute;
+  top: 86px;
+  right: 16px;
+  z-index: 20;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 3px solid var(--border);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 24px;
+}
+.location-btn:active {
+  transform: scale(0.9);
+}

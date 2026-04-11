@@ -1,5 +1,13 @@
 import type { HistoryRecord } from '../types';
 
+function formatTime(ms: number) {
+  const totalSeconds = Math.floor(ms / 1000);
+  if (totalSeconds < 60) return `${totalSeconds}s`;
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}m ${s}s`;
+}
+
 export default function History({history, onClose}: {history: HistoryRecord[], onClose: () => void}) {
     return (
         <div className="modal-overlay" onClick={onClose}>
@@ -23,6 +31,11 @@ export default function History({history, onClose}: {history: HistoryRecord[], o
                                   {item.status}
                                 </span>
                               </div>
+                              {item.timeTakenMs !== undefined && (
+                                <span style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.2' }}>
+                                  ⏱️ {formatTime(item.timeTakenMs)}
+                                </span>
+                              )}
                               {item.address && (
                                 <span style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.2' }}>
                                   🗺️ {item.address}

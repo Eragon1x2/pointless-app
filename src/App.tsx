@@ -9,7 +9,7 @@ import History from './components/History';
 import type { HistoryRecord, TargetPoint } from './types';
 
 function App() {
-  const { coordinates, error, loading } = useLocation();
+  const { coordinates, error, loading, refresh } = useLocation();
   const [distance, setDistance] = useState(1000);
   const [target, setTarget] = useState<TargetPoint | null>(null);
   const [history, setHistory] = useState<HistoryRecord[]>([]);
@@ -22,8 +22,8 @@ function App() {
     }
   }, []) // ПУСТОЙ массив зависимостей, чтобы сработало 1 раз при старте!
 
-  const appendHistory = (status: 'Win' | 'Lost', dist: number, address?: string) => {
-    const newRecord: HistoryRecord = { distanceSet: dist, date: new Date().toISOString(), status, address };
+  const appendHistory = (status: 'Win' | 'Lost', dist: number, address?: string, timeTakenMs?: number) => {
+    const newRecord: HistoryRecord = { distanceSet: dist, date: new Date().toISOString(), status, address, timeTakenMs };
     setHistory(prevHistory => {
       const newHistory = [...prevHistory, newRecord];
       localStorage.setItem('history', JSON.stringify(newHistory));
@@ -41,17 +41,18 @@ function App() {
     const dist = getDistanceInMeters(coordinates.lat, coordinates.lng, target.lat, target.lng);
     if (dist <= 10) {
        setTimeout(() => {
-         appendHistory('Win', target.distanceSet, target.address);
+         const timeTakenMs = target.createdAt ? Date.now() - target.createdAt : undefined;
+         appendHistory('Win', target.distanceSet, target.address, timeTakenMs);
          setTarget(null);
        }, 0);
        console.log("you win! Points reached within 10 meters.");
     }
-  }, [coordinates, target])
+  }, [coordinates, target]);
 
   const handleGenerate = async () => {
     if (!coordinates) return;
     const generated = generateTargetPoint(coordinates.lat, coordinates.lng, 0, distance);
-    const newTarget = { ...generated, distanceSet: distance, address: 'Loading address...' };
+    const newTarget = { ...generated, distanceSet: distance, address: 'Loading address...', createdAt: Date.now() };
     setTarget(newTarget);
 
     try {
@@ -74,6 +75,10 @@ function App() {
 
       <button className="history-btn" onClick={() => setIsHistoryOpen(true)} title="View History">
         📋
+      </button>
+
+      <button className="location-btn" onClick={refresh} title="Update Geolocation">
+        📍
       </button>
 
       <div className="map-layer">
@@ -124,7 +129,8 @@ function App() {
           </button>
         ) : (
           <button className="gamified-btn" style={{ background: 'var(--error)', color: 'white', border: 'none', boxShadow: 'none' }} onClick={() => {
-               appendHistory('Lost', target.distanceSet, target.address);
+               const timeTakenMs = target.createdAt ? Date.now() - target.createdAt : undefined;
+               appendHistory('Lost', target.distanceSet, target.address, timeTakenMs);
                setTarget(null);
           }}>
           Give Up
