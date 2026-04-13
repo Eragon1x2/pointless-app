@@ -6,6 +6,8 @@ import Map from './components/Map';
 import { Marker, Popup, Polyline } from 'react-leaflet';
 import { getDistanceInMeters } from './utils.ts/geo-match';
 import History from './components/History';
+import ResultModal from './components/ResultModal';
+import type { ResultModalProps } from './components/ResultModal';
 import type { HistoryRecord, TargetPoint } from './types';
 
 function App() {
@@ -14,6 +16,7 @@ function App() {
   const [target, setTarget] = useState<TargetPoint | null>(null);
   const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [resultModalData, setResultModalData] = useState<Omit<ResultModalProps, 'onClose'> | null>(null);
   const [route, setRoute] = useState<[number, number][]>([]);
 
   useEffect(() => {
@@ -55,6 +58,7 @@ function App() {
        setTimeout(() => {
          const timeTakenMs = target.createdAt ? Date.now() - target.createdAt : undefined;
          appendHistory('Win', target.distanceSet, target.address, timeTakenMs, route);
+         setResultModalData({ status: 'Win', distanceSet: target.distanceSet, timeTakenMs, route, address: target.address });
          setTarget(null);
          setRoute([]);
        }, 0);
@@ -85,6 +89,7 @@ function App() {
 
   return (
     <div className="app-container">
+      {resultModalData && <ResultModal {...resultModalData} onClose={() => setResultModalData(null)} />}
       {isHistoryOpen && <History history={history} onClose={() => setIsHistoryOpen(false)} />}
 
       <button className="history-btn" onClick={() => setIsHistoryOpen(true)} title="View History">
@@ -148,6 +153,7 @@ function App() {
           <button className="gamified-btn" style={{ background: 'var(--error)', color: 'white', border: 'none', boxShadow: 'none' }} onClick={() => {
                const timeTakenMs = target.createdAt ? Date.now() - target.createdAt : undefined;
                appendHistory('Lost', target.distanceSet, target.address, timeTakenMs, route);
+               setResultModalData({ status: 'Lost', distanceSet: target.distanceSet, timeTakenMs, route, address: target.address });
                setTarget(null);
                setRoute([]);
           }}>
