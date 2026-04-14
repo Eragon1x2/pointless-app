@@ -18,7 +18,7 @@ function calculateRouteLength(route: [number, number][]) {
 }
 
 export interface ResultModalProps {
-  status: 'Win' | 'Lost';
+  status: 'Win' | 'Lost' | 'Tech Lost';
   distanceSet: number;
   timeTakenMs?: number;
   route?: [number, number][];
@@ -28,13 +28,17 @@ export interface ResultModalProps {
 
 export default function ResultModal({ status, distanceSet, timeTakenMs, route, address, onClose }: ResultModalProps) {
     const isWin = status === 'Win';
+    const isTechLost = status === 'Tech Lost';
     const routeLength = calculateRouteLength(route || []);
     
+    const titleText = isWin ? 'You Won! 🎉' : isTechLost ? 'Tech Loss (Unreachable) 🛑' : 'You Gave Up 🏳️';
+    const titleColor = isWin ? 'var(--primary-active)' : isTechLost ? 'orange' : 'var(--error)';
+
     return (
         <div className="modal-overlay" onClick={onClose} style={{ zIndex: 2000 }}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center', padding: '32px' }}>
-                <h1 style={{ fontSize: '32px', margin: '0 0 16px 0', color: isWin ? 'var(--primary-active)' : 'var(--error)' }}>
-                    {isWin ? 'You Won! 🎉' : 'You Gave Up 🏳️'}
+                <h1 style={{ fontSize: '32px', margin: '0 0 16px 0', color: titleColor }}>
+                    {titleText}
                 </h1>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '18px', color: 'var(--text)' }}>

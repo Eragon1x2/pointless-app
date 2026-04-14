@@ -5,6 +5,7 @@ interface LocationState {
     lat: number;
     lng: number;
   } | null;
+  accuracy: number | null;
   error: string | null;
   loading: boolean;
 }
@@ -14,6 +15,7 @@ const isSupported = typeof navigator !== 'undefined' && "geolocation" in navigat
 export const useLocation = () => {
   const [location, setLocation] = useState<LocationState>({
     coordinates: null,
+    accuracy: null,
     error: isSupported ? null : "Geolocation is not supported by your browser",
     loading: isSupported,
   });
@@ -34,6 +36,7 @@ export const useLocation = () => {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         },
+        accuracy: position.coords.accuracy,
         error: null,
         loading: false,
       });

@@ -7,15 +7,17 @@ import { Marker, Popup, Polyline } from 'react-leaflet';
 import { getDistanceInMeters } from './utils.ts/geo-match';
 import History from './components/History';
 import ResultModal from './components/ResultModal';
+import { isBadLocation } from './utils.ts/location-filter';
 import type { ResultModalProps } from './components/ResultModal';
 import type { HistoryRecord, TargetPoint } from './types';
 
 function App() {
-  const { coordinates, error, loading, refresh } = useLocation();
+  const { coordinates, accuracy, error, loading, refresh } = useLocation();
   const [distance, setDistance] = useState(1000);
   const [target, setTarget] = useState<TargetPoint | null>(null);
   const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [resultModalData, setResultModalData] = useState<Omit<ResultModalProps, 'onClose'> | null>(null);
   const [route, setRoute] = useState<[number, number][]>([]);
 
@@ -26,7 +28,7 @@ function App() {
     }
   }, []) // ПУСТОЙ массив зависимостей, чтобы сработало 1 раз при старте!
 
-  const appendHistory = (status: 'Win' | 'Lost', dist: number, address?: string, timeTakenMs?: number, savedRoute?: [number, number][]) => {
+  const appendHistory = (status: 'Win' | 'Lost' | 'Tech Lost', dist: number, address?: string, timeTakenMs?: number, savedRoute?: [number, number][]) => {
     const newRecord: HistoryRecord = { distanceSet: dist, date: new Date().toISOString(), status, address, timeTakenMs, route: savedRoute };
     setHistory(prevHistory => {
       const newHistory = [...prevHistory, newRecord];
@@ -42,12 +44,15 @@ function App() {
     // при моментальном совпадении координат!
     if (target.address === 'Loading address...') return;
 
-    // Route tracking optimization: only add point if moved > 3 meters
+    // Ignore GPS bounces: don't track points with bad accuracy
+    if (accuracy && accuracy > 25) return;
+
+    // Route tracking optimization: only add point if moved > 10 meters to smooth the line
     setRoute(prev => {
         const lastPoint = prev[prev.length - 1];
         if (!lastPoint) return [[coordinates.lat, coordinates.lng]];
         const distCurrentToLast = getDistanceInMeters(coordinates.lat, coordinates.lng, lastPoint[0], lastPoint[1]);
-        if (distCurrentToLast > 3) {
+        if (distCurrentToLast > 10) {
             return [...prev, [coordinates.lat, coordinates.lng]];
         }
         return prev;
@@ -68,23 +73,42 @@ function App() {
 
   const handleGenerate = async () => {
     if (!coordinates) return;
-    const generated = generateTargetPoint(coordinates.lat, coordinates.lng, 0, distance);
-    const newTarget = { ...generated, distanceSet: distance, address: 'Loading address...', createdAt: Date.now() };
-    setTarget(newTarget);
-    setRoute([[coordinates.lat, coordinates.lng]]); // start route tracking!
+    setIsGenerating(true);
+    
+    let attempts = 0;
+    let finalTargetData = null;
+    let finalAddress = 'Unknown Location';
+    let unreachable = false;
 
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${generated.lat}&lon=${generated.lng}&format=json`);
-      if (res.ok) {
-        const data = await res.json();
-        const address = data.display_name || 'Unknown Location';
-        setTarget(prev => prev ? { ...prev, address } : null);
-      } else {
-        setTarget(prev => prev ? { ...prev, address: 'Address unavailable' } : null);
-      }
-    } catch (e) {
-      setTarget(prev => prev ? { ...prev, address: 'Address unavailable' } : null);
+    while (attempts < 5) {
+        attempts++;
+        const generated = generateTargetPoint(coordinates.lat, coordinates.lng, 0, distance);
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${generated.lat}&lon=${generated.lng}&format=json`);
+            if (res.ok) {
+                const data = await res.json();
+                if (!isBadLocation(data)) {
+                    finalAddress = data.display_name || 'Unknown Location';
+                    finalTargetData = generated;
+                    break;
+                }
+            }
+        } catch(e) {}
+        finalTargetData = generated; // Remember last one if all fail
     }
+
+    if (attempts >= 5) {
+        unreachable = true;
+        finalAddress = "Warning: Point might be unreachable (Failed 5 checks)";
+    }
+
+    if (finalTargetData) {
+        const newTarget = { ...finalTargetData, address: finalAddress, createdAt: Date.now(), unreachable };
+        setTarget(newTarget);
+        setRoute([[coordinates.lat, coordinates.lng]]);
+    }
+    
+    setIsGenerating(false);
   };
 
   return (
@@ -102,7 +126,7 @@ function App() {
 
       <div className="map-layer">
         {coordinates ? (
-          <Map coordinates={{ lat: coordinates.lat, lng: coordinates.lng }}>
+          <Map coordinates={{ lat: coordinates.lat, lng: coordinates.lng }} target={target}>
             {route.length > 0 && (
               <Polyline positions={route} pathOptions={{ color: '#4285F4', weight: 6, opacity: 0.8 }} />
             )}
@@ -126,7 +150,11 @@ function App() {
       <div className="ui-layer">
         {loading && <div className="status-badge loading">GPS: Locating...</div>}
         {error && <div className="status-badge error">GPS Error: {error}</div>}
-        {coordinates && !loading && !error && <div className="status-badge success">GPS: Locked</div>}
+        {coordinates && !loading && !error && (
+            <div className={`status-badge ${accuracy && accuracy > 100 ? 'error' : 'success'}`}>
+                GPS: {accuracy && accuracy > 100 ? `Weak Signal (±${Math.round(accuracy)}m)` : `Locked (±${Math.round(accuracy || 0)}m)`}
+            </div>
+        )}
 
         <div className="ui-panel">
           <h1 className="title">Pointless</h1>
@@ -144,20 +172,22 @@ function App() {
         {!target ? (
             <button
             className="gamified-btn"
-            disabled={!coordinates || distance <= 0}
+            disabled={!coordinates || distance <= 0 || (accuracy !== null && accuracy > 100) || isGenerating}
             onClick={handleGenerate}
+            title={accuracy && accuracy > 100 ? "Wait for better GPS signal" : ""}
           >
-            GENERATE
+            {accuracy !== null && accuracy > 100 ? "WEAK GPS" : isGenerating ? "GENERATING..." : "GENERATE"}
           </button>
         ) : (
-          <button className="gamified-btn" style={{ background: 'var(--error)', color: 'white', border: 'none', boxShadow: 'none' }} onClick={() => {
+          <button className="gamified-btn" style={{ background: target.unreachable ? 'orange' : 'var(--error)', color: 'white', border: 'none', boxShadow: 'none' }} onClick={() => {
                const timeTakenMs = target.createdAt ? Date.now() - target.createdAt : undefined;
-               appendHistory('Lost', target.distanceSet, target.address, timeTakenMs, route);
-               setResultModalData({ status: 'Lost', distanceSet: target.distanceSet, timeTakenMs, route, address: target.address });
+               const status = target.unreachable ? 'Tech Lost' : 'Lost';
+               appendHistory(status, target.distanceSet, target.address, timeTakenMs, route);
+               setResultModalData({ status, distanceSet: target.distanceSet, timeTakenMs, route, address: target.address });
                setTarget(null);
                setRoute([]);
           }}>
-          Give Up
+          {target.unreachable ? 'Cancel (Unreachable)' : 'Give Up'}
           </button>
         )}
         </div>

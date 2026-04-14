@@ -1,4 +1,5 @@
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, useMap, ScaleControl } from 'react-leaflet'
+import { useEffect, useRef } from 'react'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
@@ -21,9 +22,30 @@ const UserLocationIcon = L.divIcon({
   iconAnchor: [10, 10]
 })
 
-export default function Map({coordinates, children}: {coordinates: {lat: number, lng: number}, children: React.ReactNode}) {
+function MapController({ userLoc, targetLoc }: { userLoc: {lat: number, lng: number}, targetLoc?: {lat: number, lng: number} | null }) {
+  const map = useMap();
+  const prevTarget = useRef(targetLoc);
+
+  useEffect(() => {
+    // Only pan when target changes
+    if (targetLoc !== prevTarget.current) {
+        if (targetLoc) {
+            const bounds = L.latLngBounds([userLoc.lat, userLoc.lng], [targetLoc.lat, targetLoc.lng]);
+            map.flyToBounds(bounds, { padding: [60, 60], duration: 1.5, maxZoom: 16 });
+        } else {
+            map.flyTo([userLoc.lat, userLoc.lng], 16, { duration: 1.5 });
+        }
+        prevTarget.current = targetLoc;
+    }
+  }, [targetLoc, map, userLoc.lat, userLoc.lng]); 
+
+  return null;
+}
+
+export default function Map({coordinates, target, children}: {coordinates: {lat: number, lng: number}, target?: {lat: number, lng: number} | null, children: React.ReactNode}) {
   return (
-    <MapContainer center={[coordinates.lat, coordinates.lng]} zoom={15} scrollWheelZoom={true} zoomControl={false}>
+    <MapContainer center={[coordinates.lat, coordinates.lng]} zoom={16} scrollWheelZoom={true} zoomControl={false}>
+      <MapController userLoc={coordinates} targetLoc={target} />
       <TileLayer
         detectRetina={true}
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -39,6 +61,7 @@ export default function Map({coordinates, children}: {coordinates: {lat: number,
 
       {/* Остальные дочерние элементы карты (генерация точек) */}
       {children}
+      <ScaleControl position="bottomleft" imperial={false} />
     </MapContainer>
   )
 }

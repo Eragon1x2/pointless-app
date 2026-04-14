@@ -27,7 +27,13 @@ export default function History({history, onClose}: {history: HistoryRecord[], o
                           <li key={index} style={{ padding: '12px', borderRadius: '12px', backgroundColor: 'var(--surface-alt)', fontSize: '16px', fontWeight: 'bold', display: 'flex', flexDirection: 'column', gap: '4px', border: '1px solid var(--border)' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <span>📍 {item.distanceSet}m</span>
-                                <span style={{ color: item.status === 'Win' ? 'var(--primary-active)' : 'var(--error)' }}>
+                                <span style={{ 
+                                  color: item.status === 'Win' 
+                                    ? 'var(--primary-active)' 
+                                    : item.status === 'Tech Lost' 
+                                      ? 'orange' 
+                                      : 'var(--error)' 
+                                }}>
                                   {item.status}
                                 </span>
                               </div>
