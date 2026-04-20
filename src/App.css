@@ -55,6 +55,17 @@
   letter-spacing: 1px;
 }
 
+/* Home screen big title — fluid size so it never overflows */
+.home-title {
+  font-size: clamp(2rem, 12vw, 5rem);
+  margin-bottom: 12px;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  text-align: center;
+  color: var(--primary-active);
+  text-transform: uppercase;
+}
+
 .status-badge {
   pointer-events: auto;
   align-self: center;

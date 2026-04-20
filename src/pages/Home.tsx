@@ -23,7 +23,7 @@ export default function Home() {
       {isHistoryOpen && <History history={history} onClose={() => setIsHistoryOpen(false)} />}
       
       <div className="ui-panel" style={{ textAlign: 'center', width: '90%', maxWidth: '500px', padding: '48px 32px', borderRadius: '32px', boxShadow: '0 12px 36px rgba(0,0,0,0.1)' }}>
-        <h1 className="title" style={{ fontSize: '64px', marginBottom: '16px', letterSpacing: '-1px' }}>Pointless</h1>
+        <h1 className="home-title">Pointless</h1>
         <p style={{ color: 'var(--text-muted)', marginBottom: '48px', fontSize: '20px', fontWeight: '500' }}>Wander aimlessly.</p>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
