@@ -1,7 +1,7 @@
 import '../App.css';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Marker, Popup, Polyline } from 'react-leaflet';
+import { Marker, Popup, Polyline, Circle } from 'react-leaflet';
 import { getDistanceInMeters } from '../utils.ts/geo-match';
 import { useLocation } from '../hooks/use-location';
 import { useGameLoop } from '../hooks/use-game-loop';
@@ -15,53 +15,67 @@ import type { TargetPoint } from '../types';
 export default function CustomGame() {
   const { coordinates, accuracy, error, loading, refresh } = useLocation();
 
-  const target         = useGameStore((s) => s.target);
-  const route          = useGameStore((s) => s.route);
-  const history        = useGameStore((s) => s.history);
-  const isHistoryOpen  = useGameStore((s) => s.isHistoryOpen);
-  const resultModalData = useGameStore((s) => s.resultModalData);
-  const setTarget      = useGameStore((s) => s.setTarget);
-  const setRoute       = useGameStore((s) => s.setRoute);
-  const loadHistory    = useGameStore((s) => s.loadHistory);
-  const setIsHistoryOpen   = useGameStore((s) => s.setIsHistoryOpen);
-  const setResultModalData  = useGameStore((s) => s.setResultModalData);
-  const giveUp         = useGameStore((s) => s.giveUp);
+  // "Preview" point — user picked but hasn't confirmed yet
+  const [pendingTarget, setPendingTarget] = useState<{ lat: number; lng: number; distanceSet: number; address: string } | null>(null);
+  const [isLoadingAddress, setIsLoadingAddress] = useState(false);
 
+  const target          = useGameStore((s) => s.target);
+  const route           = useGameStore((s) => s.route);
+  const history         = useGameStore((s) => s.history);
+  const isHistoryOpen   = useGameStore((s) => s.isHistoryOpen);
+  const resultModalData = useGameStore((s) => s.resultModalData);
+  const setTarget       = useGameStore((s) => s.setTarget);
+  const setRoute        = useGameStore((s) => s.setRoute);
+  const loadHistory     = useGameStore((s) => s.loadHistory);
+  const setIsHistoryOpen    = useGameStore((s) => s.setIsHistoryOpen);
+  const setResultModalData  = useGameStore((s) => s.setResultModalData);
+  const giveUp          = useGameStore((s) => s.giveUp);
+
+  // Route tracking + win detection only active after game is confirmed
   useGameLoop({ coordinates, accuracy });
 
   useEffect(() => { loadHistory(); }, [loadHistory]);
 
+  // Tap on map → update preview point (can tap multiple times)
   const handleMapClick = async (lat: number, lng: number) => {
-    if (!coordinates) return;
+    if (!coordinates || target) return; // don't allow repositioning once game started
 
-    const distanceToTarget = Math.round(
-      getDistanceInMeters(coordinates.lat, coordinates.lng, lat, lng)
-    );
+    const distanceSet = Math.round(getDistanceInMeters(coordinates.lat, coordinates.lng, lat, lng));
+    setPendingTarget({ lat, lng, distanceSet, address: 'Loading address...' });
+    setIsLoadingAddress(true);
+
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+      if (res.ok) {
+        const data = await res.json();
+        setPendingTarget({ lat, lng, distanceSet, address: data.display_name || 'Custom Location' });
+      } else {
+        setPendingTarget({ lat, lng, distanceSet, address: 'Address unavailable' });
+      }
+    } catch (_) {
+      setPendingTarget({ lat, lng, distanceSet, address: 'Address unavailable' });
+    } finally {
+      setIsLoadingAddress(false);
+    }
+  };
+
+  // Confirm → move pendingTarget into the game store and start tracking
+  const handleConfirm = () => {
+    if (!pendingTarget || !coordinates) return;
 
     const newTarget: TargetPoint = {
-      lat,
-      lng,
-      distanceSet: distanceToTarget,
-      address: 'Loading address...',
+      ...pendingTarget,
       createdAt: Date.now(),
     };
 
     setTarget(newTarget);
     setRoute([[coordinates.lat, coordinates.lng]]);
+    setPendingTarget(null);
+  };
 
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setTarget({ ...newTarget, address: data.display_name || 'Custom Location' });
-      } else {
-        setTarget({ ...newTarget, address: 'Address unavailable' });
-      }
-    } catch (_) {
-      setTarget({ ...newTarget, address: 'Address unavailable' });
-    }
+  // Cancel preview
+  const handleCancelPending = () => {
+    setPendingTarget(null);
   };
 
   return (
@@ -85,11 +99,34 @@ export default function CustomGame() {
 
       <div className="map-layer">
         {coordinates ? (
-          <Map coordinates={coordinates} target={target}>
+          <Map coordinates={coordinates} target={target ?? (pendingTarget as any)}>
+            {/* Allow tapping only before the game starts */}
             {!target && <MapClickHandler onMapClick={handleMapClick} />}
+
+            {/* Active route line */}
             {route.length > 0 && (
               <Polyline positions={route} pathOptions={{ color: '#4285F4', weight: 6, opacity: 0.8 }} />
             )}
+
+            {/* Preview marker (dashed circle style) */}
+            {!target && pendingTarget && (
+              <>
+                <Circle
+                  center={[pendingTarget.lat, pendingTarget.lng]}
+                  radius={15}
+                  pathOptions={{ color: '#e08a3d', fillColor: '#e08a3d', fillOpacity: 0.3, dashArray: '6 4' }}
+                />
+                <Marker position={[pendingTarget.lat, pendingTarget.lng]}>
+                  <Popup>
+                    <strong>Preview Point</strong><br />
+                    {pendingTarget.distanceSet}m away<br />
+                    <span style={{ fontSize: '12px', color: '#888' }}>{pendingTarget.address}</span>
+                  </Popup>
+                </Marker>
+              </>
+            )}
+
+            {/* Confirmed active marker */}
             {target && (
               <Marker position={[target.lat, target.lng]}>
                 <Popup>
@@ -120,11 +157,35 @@ export default function CustomGame() {
 
         <div className="ui-panel">
           <h1 className="title">Custom Mode</h1>
-          {!target ? (
+
+          {/* Phase 1: no target yet, no preview → hint */}
+          {!target && !pendingTarget && (
             <div style={{ textAlign: 'center', padding: '10px 0', fontSize: '18px', color: 'var(--text-muted)' }}>
-              Tap anywhere on the map to place your target destination.
+              Tap anywhere on the map to place your destination.
             </div>
-          ) : (
+          )}
+
+          {/* Phase 2: preview selected, waiting for confirmation */}
+          {!target && pendingTarget && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ fontSize: '14px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                {isLoadingAddress ? '🔍 Loading address...' : `📍 ${pendingTarget.distanceSet}m away`}
+              </div>
+              <button className="gamified-btn" onClick={handleConfirm} disabled={isLoadingAddress}>
+                START HERE
+              </button>
+              <button
+                className="gamified-btn"
+                style={{ background: 'var(--surface-alt)', color: 'var(--text)', border: '2px solid var(--border)', boxShadow: 'none' }}
+                onClick={handleCancelPending}
+              >
+                Change Point
+              </button>
+            </div>
+          )}
+
+          {/* Phase 3: game in progress */}
+          {target && (
             <button
               className="gamified-btn"
               style={{ background: 'var(--error)', color: 'white', border: 'none', boxShadow: 'none' }}
